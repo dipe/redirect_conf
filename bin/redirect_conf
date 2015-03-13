@@ -1,0 +1,61 @@
+#!/usr/bin/env ruby
+
+require "thor"
+require "csv"
+require "uri"
+
+class RedirectConfig < Thor
+
+  desc "apache_from_csv HOSTNAME <CSVFILE",
+       <<-EOT
+Creates RewriteRules for Apache web server from given CSVFILE.
+CSVFILE has to have the following columns: TARGET_URI, STATUSCODE,
+DESTINATION_URI All rows from CSVFILE will be read but all not
+TARGET_URI matching HOSTNAME and Statuscode not matching 301 will be
+ignored.
+       EOT
+  def apache(hostname)
+    line_no = 0
+    
+    CSV($stdin, headers: false).each do |in_row|
+      line_no += 1
+
+      target, statuscode, destination = in_row
+
+      next unless statuscode == "301" 
+      next unless /^http/.match target
+      
+      target_uri = URI(target)
+      next unless target_uri.host == hostname
+      
+      pattern = RegExp.escape("#{target_uri.path}#{target_uri.query}")
+
+      puts "RewriteRule\t^#{pattern}$\t#{destination}\t[redirect=301,nocase,last]"
+    end
+  rescue => e
+    puts e, "at csv file line #{line_no}"
+  end
+
+  desc "check_uniq <APACHE_CONFFILE",
+       <<-EOT
+Reads APACHE_CONFFILE and reads all lines with RewriteRule statements.
+Extracts the Pattern argument (this is the first argument to
+RewriteRule). Finds an prints all lines with duplicated Pattern.
+       EOT
+  def check_uniq
+    line_no = 0
+    target_line_nos = Hash.new
+    target_pattern = /^RewriteRule\s+([^\s]+)\s+/
+    
+    $stdin.readlines.each do |line|
+      line_no += 1
+      target = line[target_pattern, 1]
+
+      unless target.nil? || target_line_nos[target].nil?
+        warn "Line #{line}: #{target} already seen in line #{target_line_nos[target]}"
+      end
+    end
+  end
+end
+
+RedirectConfig.start(ARGV)
