@@ -3,6 +3,7 @@
 require "thor"
 require "csv"
 require "uri"
+require 'ostruct'
 
 class RedirectConfig < Thor
 
@@ -14,7 +15,7 @@ DESTINATION_URI All rows from CSVFILE will be read but all not
 TARGET_URI matching HOSTNAME and Statuscode not matching 301 will be
 ignored.
        EOT
-  def apache(hostname)
+  def apache_from_csv(hostname)
     line_no = 0
     
     CSV($stdin, headers: false).each do |in_row|
@@ -28,32 +29,56 @@ ignored.
       target_uri = URI(target)
       next unless target_uri.host == hostname
       
-      pattern = RegExp.escape("#{target_uri.path}#{target_uri.query}")
+      pattern = Regexp.escape("#{target_uri.path}#{target_uri.query}")
 
-      puts "RewriteRule\t^#{pattern}$\t#{destination}\t[redirect=301,nocase,last]"
+      puts "RewriteRule\t^#{pattern}$\t#{destination}\t[r=301,nc,l]\t# line #{line_no}"
     end
   rescue => e
     puts e, "at csv file line #{line_no}"
   end
 
-  desc "check_uniq <APACHE_CONFFILE",
+  desc "find_duplicates <APACHE_CONFFILE",
        <<-EOT
 Reads APACHE_CONFFILE and reads all lines with RewriteRule statements.
 Extracts the Pattern argument (this is the first argument to
 RewriteRule). Finds an prints all lines with duplicated Pattern.
        EOT
-  def check_uniq
+  def find_duplicates
     line_no = 0
-    target_line_nos = Hash.new
-    target_pattern = /^RewriteRule\s+([^\s]+)\s+/
-    
-    $stdin.readlines.each do |line|
-      line_no += 1
-      target = line[target_pattern, 1]
+    rules_by_target = Hash.new
 
-      unless target.nil? || target_line_nos[target].nil?
-        warn "Line #{line}: #{target} already seen in line #{target_line_nos[target]}"
+    rule_pattern = /\s*RewriteRule\s+([^\s]+)\s+([^\s]+)(.*# line ([0-9]+))?/
+    
+    $stdin.readlines.each do |rule|
+      line_no += 1
+      
+      next if /^#/.match rule 
+      next unless target = rule[rule_pattern, 1]
+      destination = rule[rule_pattern, 2]
+      orig_line_no = rule[rule_pattern, 4]
+
+      unless previous_rule = rules_by_target[target]
+        rules_by_target[target] = OpenStruct.new
+        rules_by_target[target].line_no = line_no
+        rules_by_target[target].orig_line_no = orig_line_no
+        rules_by_target[target].destination = destination
+        next
       end
+
+      from_line_no = if orig_line_no
+                       "original line #{orig_line_no}"
+                     else
+                       "config line #{line_no}"
+                     end
+      
+      previusly_line_no = if previous_rule.orig_line_no
+                            "original line #{previous_rule.orig_line_no}"
+                          else
+                            "config line #{previous_rule.line_no}"
+                          end
+      
+      puts "Line #{line_no}: From #{from_line_no}: #{target} previously seen in #{previusly_line_no}"
+      puts "   with destination: #{previous_rule.destination}\n           original: #{destination}" unless destination == previous_rule.destination
     end
   end
 end
