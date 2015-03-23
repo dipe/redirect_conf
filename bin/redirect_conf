@@ -29,12 +29,14 @@ ignored.
       target_uri = URI(target)
       next unless target_uri.host == hostname
       
-      pattern = Regexp.escape("#{target_uri.path}#{target_uri.query}")
-
+      pattern = Regexp.escape("#{target_uri.path}")
+      query =  Regexp.escape("#{target_uri.query}") if target_uri.query
+      
+      puts "RewriteCond\t\%\{QUERY_STRING\}\t^#{query}$" if query
       puts "RewriteRule\t^#{pattern}$\t#{destination}\t[r=301,nc,l]\t# line #{line_no}"
     end
   rescue => e
-    puts e, "at csv file line #{line_no}"
+    warn e, "at csv file line #{line_no}"
   end
 
   desc "find_duplicates <APACHE_CONFFILE",
