@@ -33,7 +33,7 @@ ignored.
       query =  Regexp.escape("#{target_uri.query}") if target_uri.query
       
       puts "RewriteCond\t\%\{QUERY_STRING\}\t^#{query}$" if query
-      puts "RewriteRule\t^#{pattern}$\t#{destination}\t[r=301,nc,ne,l]\t# line #{line_no}"
+      puts "RewriteRule\t^#{pattern}$\t#{destination}\t[r=301,nc,ne,l]\t# from Redirect Master line #{line_no}"
     end
   rescue => e
     warn e, "at csv file line #{line_no}"
@@ -49,7 +49,7 @@ RewriteRule). Finds an prints all lines with duplicated Pattern.
     line_no = 0
     rules_by_target = Hash.new
 
-    rule_pattern = /\s*RewriteRule\s+([^\s]+)\s+([^\s]+)(.*# line ([0-9]+))?/
+    rule_pattern = /\s*RewriteRule\s+([^\s]+)\s+([^\s]+)(.*# from Redirect Master line ([0-9]+))?/
     
     $stdin.readlines.each do |rule|
       line_no += 1
