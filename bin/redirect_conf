@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# coding: utf-8
 
 require "thor"
 require "csv"
@@ -35,8 +36,147 @@ ignored.
       puts "RewriteCond\t\%\{QUERY_STRING\}\t^#{query}$" if query
       puts "RewriteRule\t^#{pattern}$\t#{destination}\t[r=301,nc,ne,l]\t# from Redirect Master line #{line_no}"
     end
-  rescue => e
-    warn e, "at csv file line #{line_no}"
+  end
+
+  desc "csv_to_apache <CSVFILE",
+       <<-EOT
+Creates RewriteRules for Apache web server from given CSVFILE as complementary to apache_to_csv.
+       EOT
+  def csv_to_apache
+    line_no = 0
+    
+    CSV($stdin, headers: true).each do |in_row|
+      line_no += 1
+
+      pattern = in_row['Pattern']
+      destination = in_row['Destination']
+      r = in_row['R']
+      l = in_row['L']
+      nc = in_row['NC']
+      ne = in_row['NE']
+      re = in_row['RE']
+      condition = in_row['Condition']
+
+      # r=301,nc,ne,l
+      f = []
+      f << "r=#{r}" if r
+      f << "ne" if ne
+      f << "nc" if nc
+      f << "l" if l
+      flags = "[#{f.join(',')}]" unless f.empty?
+
+      pattern = "^#{Regexp.escape(pattern)}$" unless re
+      
+      puts "RewriteCond\t#{condition.gsub(/ +/, "\t")}" unless cond.empty? # FIX gsub ist nur ein Hack für's diff
+      puts "RewriteRule\t#{pattern}\t#{destination}\t#{flags}" #\t# from Redirect Master line #{line_no}"
+    end
+  end
+
+  desc "apache_to_csv <APACHE_CONFFILE >CSVFILE",
+       <<-EOT
+Reads APACHE_CONFFILE as a RewriteRules file for Apache web and creates a CSVFILE from it's content.
+       EOT
+  def apache_to_csv
+    line_no = 0
+
+    cond_pattern = /RewriteCond\s+(.+)/
+    rule_pattern = /RewriteRule\s+([^\s]+)\s+([^\s]+)\s*(\[.*\])?/
+    comment_pattern = /^\s*#(.+)/
+
+    last_condition = '' # FIX should be an array
+    
+    CSV do |csv|
+
+      csv << %w(Pattern Destination RE NC NE L R Condition)
+      
+      $stdin.readlines.each do |line|
+        line_no += 1
+
+        line.strip!
+
+        next if line.empty? || line.match(comment_pattern)
+
+        if c = line[cond_pattern, 1]
+          last_condition = c
+          next
+        end
+
+        pattern = line[rule_pattern, 1]
+        warn "Pattern missing in non-empty line #{line_no}" if !pattern && !line.empty?
+        
+        destination = line[rule_pattern, 2]
+        warn "Destination missing in line #{line_no}" unless destination
+
+        case flags = line[rule_pattern, 3]
+        when '[redirect=301,nocase,last]'
+          r = 301
+          nc = true
+          l = true          
+        when '[R=301,NC,l]'
+          r = 301
+          nc = true
+          l = true
+        when '[R=301,NC]'
+          r = 301
+          nc = true
+        when '[r=301,nc,l]'
+          r = 301
+          nc = true
+          l = true
+        when '[r=301,l]'
+          r = 301
+          l = true
+        when '[r=301,l,nc]'
+          r = 301
+          nc = true
+          l = true
+        when '[r=301,nc,ne,l]'
+          r = 301
+          nc = true
+          ne = true
+          l = true          
+        when '[R=301,NC,NE,l]'
+          r = 301
+          nc = true
+          ne = true
+          l = true          
+        when '[R=301,NE,NC,l]'
+          r = 301
+          nc = true
+          ne = true
+          l = true
+        when '[r=301,NC,NE,l]'
+          r = 301
+          nc = true
+          ne = true
+          l = true
+        when '[redirect=301,nocase,noescape,last]'
+          r = 301
+          nc = true
+          ne = true
+          l = true          
+        else
+          warn "unknown flags '#{flags}' found in line #{line_no}"
+        end
+        
+        if /[\[\]\(\)\|\?]/.match(pattern)
+          re = true
+        elsif /^[^\^].*\$$/.match(pattern)
+          re = true
+        elsif /^\^.*[^\$]$/.match(pattern)
+          re = true
+        else
+          pattern.gsub!(/^\^/, '')
+          pattern.gsub!(/\$$/, '')
+          pattern.gsub!(/\\/, '')
+        end
+
+        # Pattern Destination RE NC L R Condition
+        csv << [pattern, destination, re, nc, ne, l, r, last_condition]
+
+        last_condition = '' # clear condition accu after every rule
+      end
+    end
   end
 
   desc "find_duplicates <APACHE_CONFFILE",
