@@ -1,11 +1,10 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'redirect_conf/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "redirect_conf"
-  spec.version       = "0.1"
+  spec.version       = "0.2"
   spec.authors       = ["Peter Ehrenberg"]
   spec.email         = ["pe@dipe.de"]
 
