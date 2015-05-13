@@ -36,7 +36,7 @@ Creates RewriteRules for Apache web server from given CSVFILE as complementary t
 
       pattern = "^#{Regexp.escape(pattern)}$" unless re
       
-      puts "RewriteCond\t#{condition}" unless condition.empty?
+      puts "RewriteCond\t#{condition}" if condition
       puts "RewriteRule\t#{pattern} #{destination} #{flags}"
     end
   end
