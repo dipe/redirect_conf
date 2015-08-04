@@ -22,10 +22,10 @@ Creates RewriteRules for Apache web server from given CSVFILE as complementary t
       destination = in_row['Destination']
       condition = in_row['Condition']
       r = in_row['R']
-      l = in_row['L']
-      nc = in_row['NC']
-      ne = in_row['NE']
-      re = in_row['RE']
+      l = boolean in_row['L']
+      nc = boolean in_row['NC']
+      ne = boolean in_row['NE']
+      re = boolean in_row['RE']
 
       f = []
       f << "r=#{r}" if r
@@ -38,6 +38,16 @@ Creates RewriteRules for Apache web server from given CSVFILE as complementary t
       
       puts "RewriteCond\t#{condition}" if condition
       puts "RewriteRule\t#{pattern} #{destination} #{flags}"
+    end
+  end
+
+  no_commands do
+    def boolean(str)
+      if /^\s*[fFnN]/.match(str)
+        false
+      else
+        true
+      end
     end
   end
 end
