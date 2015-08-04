@@ -26,12 +26,16 @@ Creates RewriteRules for Apache web server from given CSVFILE as complementary t
       nc = boolean in_row['NC']
       ne = boolean in_row['NE']
       re = boolean in_row['RE']
+      qsa = boolean in_row['QSA']
+      qsd = boolean in_row['QSD']
 
       f = []
       f << "r=#{r}" if r
       f << "ne" if ne
       f << "nc" if nc
       f << "l" if l
+      f << "qsa" if qsa
+      f << "qsd" if qsd
       flags = "[#{f.join(',')}]" unless f.empty?
 
       pattern = "^#{Regexp.escape(pattern)}$" unless re
