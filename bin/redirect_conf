@@ -12,10 +12,17 @@ class RedirectConfig < Thor
        <<-EOT
 Creates RewriteRules for Apache web server from given CSVFILE as complementary to apache_to_csv.
        EOT
+
+  method_option :format, default: 'dos', aliases:'-f', enum: %w{unix dos}
+
   def csv_to_apache
     line_no = 0
+    row_sep = case options[:format]
+    when 'dos' then "\r\n"
+    else "\n"
+    end
 
-    CSV($stdin, row_sep: "\r\n", headers: true).each do |in_row|
+    CSV($stdin, row_sep: row_sep, headers: true).each do |in_row|
       line_no += 1
 
       pattern = in_row['Pattern']
