@@ -8,44 +8,27 @@ require 'ostruct'
 
 class RedirectConfig < Thor
 
-  desc "csv_to_apache <CSVFILE",
-       <<-EOT
-Creates RewriteRules for Apache web server from given CSVFILE as complementary to apache_to_csv.
-       EOT
-
+  desc "csv_to_apache <CSVFILE", "Creates RewriteRules for Apache web server from given CSVFILE as complementary to apache_to_csv."
   method_option :format, default: 'dos', aliases:'-f', enum: %w{unix dos}
-
   def csv_to_apache
     line_no = 0
-    row_sep = case options[:format]
-    when 'dos' then "\r\n"
-    else "\n"
-    end
+    row_sep = case options[:format] when 'dos' then "\r\n" else "\n" end
 
     CSV($stdin, row_sep: row_sep, headers: true).each do |in_row|
       line_no += 1
 
       pattern = in_row['Pattern']
+      pattern = "^#{Regexp.escape(pattern)}$" unless boolean(in_row['re'])
       destination = in_row['Destination']
       condition = in_row['Condition']
-      r = in_row['R']
-      l = boolean in_row['L']
-      nc = boolean in_row['NC']
-      ne = boolean in_row['NE']
-      re = boolean in_row['RE']
-      qsa = boolean in_row['QSA']
-      qsd = boolean in_row['QSD']
 
       f = []
+      r = in_row['R']
       f << "r=#{r}" if r
-      f << "ne" if ne
-      f << "nc" if nc
-      f << "l" if l
-      f << "qsa" if qsa
-      f << "qsd" if qsd
+      %w{NE NC L QSA QSD}.each do |n|
+        f << n.downcase if boolean(in_row[n])
+      end
       flags = "[#{f.join(',')}]" unless f.empty?
-
-      pattern = "^#{Regexp.escape(pattern)}$" unless re
 
       puts "RewriteCond\t#{condition}" if condition
       puts "RewriteRule\t#{pattern} #{destination} #{flags}"

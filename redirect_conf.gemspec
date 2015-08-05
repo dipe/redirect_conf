@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
   spec.name          = "redirect_conf"
-  spec.version       = "0.7"
+  spec.version       = "0.8"
   spec.authors       = ["Peter Ehrenberg"]
   spec.email         = ["pe@dipe.de"]
 
