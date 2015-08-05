@@ -14,8 +14,8 @@ Creates RewriteRules for Apache web server from given CSVFILE as complementary t
        EOT
   def csv_to_apache
     line_no = 0
-    
-    CSV($stdin, headers: true).each do |in_row|
+
+    CSV($stdin, row_sep: "\r\n", headers: true).each do |in_row|
       line_no += 1
 
       pattern = in_row['Pattern']
@@ -39,7 +39,7 @@ Creates RewriteRules for Apache web server from given CSVFILE as complementary t
       flags = "[#{f.join(',')}]" unless f.empty?
 
       pattern = "^#{Regexp.escape(pattern)}$" unless re
-      
+
       puts "RewriteCond\t#{condition}" if condition
       puts "RewriteRule\t#{pattern} #{destination} #{flags}"
     end
