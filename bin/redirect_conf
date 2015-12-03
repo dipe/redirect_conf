@@ -18,10 +18,11 @@ class RedirectConfig < Thor
       line_no += 1
 
       pattern = in_row['Pattern']
+      pattern.tr!(" ", ".")
       pattern = "^#{Regexp.escape(pattern)}$" unless boolean(in_row['re'])
       destination = in_row['Destination']
+      destination.gsub!(" ", "%20")
       condition = in_row['Condition']
-
       f = []
       r = in_row['R']
       f << "r=#{r}" if r
@@ -30,7 +31,7 @@ class RedirectConfig < Thor
       end
       flags = "[#{f.join(',')}]" unless f.empty?
 
-      puts "RewriteCond\t#{condition}" if condition
+      puts "RewriteCond\t#{condition}" if condition.to_s.match(/\w/)
       puts "RewriteRule\t#{pattern} #{destination} #{flags}"
     end
   end
