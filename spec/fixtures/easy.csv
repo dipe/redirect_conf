@@ -1,0 +1,3 @@
+Pattern,Destination,RE,NC,NE,L,R,QSA,QSD,Condition,Comment
+/foo,https://localhost/bar,FALSE,FALSE,TRUE,TRUE,302,FALSE,FALSE,,
+/foo,https://localhost/bar,FALSE,FALSE,TRUE,TRUE,302,FALSE,FALSE,%{QUERY_STRING} ^foo_param=123$,

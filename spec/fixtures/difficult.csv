@@ -1,0 +1,2 @@
+Pattern,Destination,RE,NC,NE,L,R,QSA,QSD,Condition,Comment
+/foo,https://localhost/bar,FALSE,FALSE,TRUE,TRUE,302,FALSE,FALSE, ,Space in cond must not break the resulting config
